@@ -199,17 +199,40 @@
     .hero-school-card {
       background: rgba(255,255,255,0.06);
       backdrop-filter: blur(16px);
-      border: 1px solid rgba(201,162,39,0.3);
+      border: 1px solid rgba(17, 18, 92, 0.507);
       border-radius: 8px;
       padding: 0;
       overflow: hidden;
       box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      position: relative;
+    }
+    .hero-school-card:hover {
+      border-color: rgba(216, 221, 241, 0.925);
+      box-shadow: 0 30px 80px rgba(216, 221, 241, 0.925);
     }
     .hero-school-card img {
       width: 100%;
       height: 340px;
       object-fit: cover;
       opacity: 0.85;
+    }
+    .overlay-content {
+      text-align: center;
+    }
+    .fade-image {
+      animation: fadeIn 1.5s ease-in-out;
+      box-shadow: 0 4px 8px rgba(2, 8, 63, 0.89);
+      background-color: rgb(16, 14, 110);
+      border: 1px solid rgba(5, 34, 87, 0.918);
+    }
+    .gradient-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(0, 30, 95, 0.452) 0%, transparent 100%);
+      pointer-events: none;
     }
     .hero-card-label {
       padding: 16px 20px;
