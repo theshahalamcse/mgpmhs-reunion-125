@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Batch Image Gallery 1971–2025</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --ink: #0d0d0d;
+      --paper: #f5f0e8;
+      --accent: #c8402a;
+      --gold: #d4a843;
+      --muted: #8a8075;
+      --card-bg: #ffffff;
+      --border: #e0d8cc;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--ink);
+      padding: 2rem 0 1.5rem;
+      border-bottom: 4px solid var(--accent);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    header h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2.2rem, 5vw, 3.5rem);
+      color: var(--paper);
+      letter-spacing: 0.06em;
+      line-height: 1;
+    }
+    header h1 span { color: var(--accent); }
+    header p.sub {
+      color: var(--muted);
+      font-size: 0.85rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    /* ── BATCH SELECTOR STRIP ── */
+    #batch-strip-wrap {
+      background: var(--ink);
+      border-bottom: 2px solid #2a2a2a;
+      overflow-x: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--accent) #1a1a1a;
+    }
+    #batch-strip-wrap::-webkit-scrollbar { height: 4px; }
+    #batch-strip-wrap::-webkit-scrollbar-track { background: #1a1a1a; }
+    #batch-strip-wrap::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 2px; }
+
+    #batch-strip {
+      display: flex;
+      gap: 2px;
+      padding: 10px 16px;
+      min-width: max-content;
+    }
+    .batch-btn {
+      background: transparent;
+      border: 1px solid #333;
+      color: #888;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      padding: 5px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .batch-btn:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+    .batch-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* ── DECADE JUMPER ── */
+    #decade-nav {
+      background: #1a1a1a;
+      padding: 8px 16px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .decade-btn {
+      background: transparent;
+      border: 1px solid #444;
+      color: #aaa;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      padding: 3px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-transform: uppercase;
+    }
+    .decade-btn:hover, .decade-btn.active {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    /* ── MAIN CONTENT ── */
+    main { padding: 2rem 0 4rem; }
+
+    /* ── BATCH HERO BANNER ── */
+    #batch-hero {
+      background: var(--ink);
+      color: var(--paper);
+      padding: 2.5rem 2rem;
+      margin-bottom: 2.5rem;
+      border-left: 6px solid var(--accent);
+      position: relative;
+      overflow: hidden;
+    }
+    #batch-hero::before {
+      content: attr(data-year);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 10rem;
+      color: rgba(255,255,255,0.04);
+      position: absolute;
+      right: -10px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      line-height: 1;
+    }
+    #batch-hero .batch-label {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      line-height: 1;
+      color: var(--gold);
+    }
+    #batch-hero .batch-desc {
+      font-size: 0.875rem;
+      color: #aaa;
+      margin-top: 6px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    #batch-hero .batch-count {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 3px 12px;
+      border-radius: 2px;
+      margin-top: 12px;
+    }
+
+    /* ── GALLERY GRID ── */
+    #gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .gallery-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      animation: fadeUp 0.35s ease both;
+    }
+    .gallery-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-thumb {
+      width: 100%;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+      display: block;
+      background: #eee;
+    }
+
+    /* SVG placeholder as data URI for card thumb */
+    .card-placeholder {
+      width: 100%;
+      aspect-ratio: 4/3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+    }
+    .card-placeholder .year-badge {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.8rem;
+      line-height: 1;
+      opacity: 0.9;
+    }
+    .card-placeholder .img-label {
+      font-size: 0.65rem;
+      opacity: 0.7;
+      letter-spacing: 0.1em;
+    }
+
+    .card-body-custom {
+      padding: 10px 14px 12px;
+    }
+    .card-title-custom {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--ink);
+      margin-bottom: 3px;
+    }
+    .card-meta {
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+    .card-tag {
+      display: inline-block;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.65rem;
+      padding: 1px 7px;
+      border-radius: 2px;
+      margin-top: 6px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    /* ── LIGHTBOX ── */
+    #lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10,10,10,0.92);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    #lightbox.open { display: flex; }
+    #lb-inner {
+      background: var(--card-bg);
+      border-radius: 6px;
+      max-width: 560px;
+      width: 100%;
+      overflow: hidden;
+      position: relative;
+      animation: zoomIn 0.2s ease;
+    }
+    @keyframes zoomIn {
+      from { opacity:0; transform:scale(0.93); }
+      to   { opacity:1; transform:scale(1); }
+    }
+    #lb-img-wrap {
+      width: 100%;
+      aspect-ratio: 4/3;
+      overflow: hidden;
+    }
+    #lb-img-wrap .card-placeholder {
+      width: 100%;
+      height: 100%;
+      aspect-ratio: unset;
+    }
+    #lb-info { padding: 1.25rem 1.5rem 1.5rem; }
+    #lb-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.7rem; color: var(--ink); line-height: 1.1; }
+    #lb-meta  { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+    #lb-desc  { font-size: 0.83rem; color: #555; margin-top: 10px; line-height: 1.6; }
+    #lb-close {
+      position: absolute;
+      top: 10px; right: 12px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 30px; height: 30px;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700;
+      z-index: 10;
+    }
+    #lb-nav {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .lb-nav-btn {
+      flex: 1;
+      background: var(--ink);
+      color: var(--paper);
+      border: none;
+      padding: 8px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      border-radius: 3px;
+      cursor: pointer;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      transition: background 0.15s;
+    }
+    .lb-nav-btn:hover { background: var(--accent); }
+
+    /* ── EMPTY STATE ── */
+    #empty-state {
+      display: none;
+      text-align: center;
+      padding: 4rem 1rem;
+    }
+    #empty-state .empty-year {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 6rem;
+      color: var(--border);
+      line-height: 1;
+    }
+    #empty-state p { color: var(--muted); font-size: 0.9rem; margin-top: 8px; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--ink);
+      color: #555;
+      text-align: center;
+      padding: 1.5rem;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border-top: 3px solid var(--accent);
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 576px) {
+      #gallery-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="container-fluid px-4">
+    <h1>BATCH <span>GALLERY</span></h1>
+    <p class="sub">Annual Archive · 1971 – 2025 · Select a Batch to Explore</p>
+  </div>
+</header>
+
+<!-- BATCH STRIP -->
+<div id="batch-strip-wrap">
+  <div id="batch-strip"></div>
+</div>
+
+<!-- DECADE JUMPER -->
+<div id="decade-nav"></div>
+
+<!-- MAIN -->
+<main>
+  <div class="container-fluid px-4">
+
+    <!-- BATCH HERO -->
+    <div id="batch-hero" data-year="1971">
+      <div class="batch-label" id="hero-label">BATCH 1971</div>
+      <div class="batch-desc" id="hero-desc">Academic Year 1971 · Gallery Archive</div>
+      <div class="batch-count" id="hero-count">12 Images</div>
+    </div>
+
+    <!-- GALLERY -->
+    <div id="gallery-grid"></div>
+    <div id="empty-state">
+      <div class="empty-year" id="empty-year">—</div>
+      <p>No images available for this batch.</p>
+    </div>
+
+  </div>
+</main>
+
+<!-- LIGHTBOX -->
+<div id="lightbox">
+  <div id="lb-inner">
+    <button id="lb-close">✕</button>
+    <div id="lb-img-wrap"></div>
+    <div id="lb-info">
+      <div id="lb-title"></div>
+      <div id="lb-meta"></div>
+      <div id="lb-desc"></div>
+      <div id="lb-nav">
+        <button class="lb-nav-btn" id="lb-prev">← Prev</button>
+        <button class="lb-nav-btn" id="lb-next">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>© Batch Gallery Archive 1971 – 2025 · All Rights Reserved</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // ── CONFIG ──────────────────────────────────────────────────────────────────
+  const START_YEAR = 1971;
+  const END_YEAR   = 2025;
+  const IMAGES_PER_BATCH = 12;
+
+  // Palette pool for placeholder cards
+  const palettes = [
+    ['#c8402a','#8b2d1e'],['#2a6496','#1a3d5c'],['#4a7c59','#2d5038'],
+    ['#7b5ea7','#4d3a6e'],['#c8913a','#8a6028'],['#3a7a9c','#224d63'],
+    ['#a04060','#6b2840'],['#5a7a3a','#384f24'],['#9c6a3a','#6b4524'],
+    ['#3a609c','#243e6b'],
+  ];
+
+  // Image categories for variety
+  const categories = [
+    'Portrait','Group Photo','Ceremony','Graduation','Sports','Event',
+    'Campus Life','Lab Work','Cultural','Award','Seminar','Field Trip',
+  ];
+  const descriptions = [
+    'A cherished moment captured during the academic year.',
+    'Students and faculty gathered for this memorable occasion.',
+    'An iconic snapshot from the batch archives.',
+    'Celebrating milestones and achievements together.',
+    'Campus life in full swing during this vibrant year.',
+    'A timeless photograph preserving history.',
+  ];
+
+  // ── DATA GENERATION ─────────────────────────────────────────────────────────
+  function generateBatchData(year) {
+    const items = [];
+    const seed = (year - START_YEAR) * 13;
+    for (let i = 0; i < IMAGES_PER_BATCH; i++) {
+      const pi  = (seed + i) % palettes.length;
+      const ci  = (seed + i * 3) % categories.length;
+      const di  = (seed + i * 7) % descriptions.length;
+      items.push({
+        id: `${year}-${i+1}`,
+        year,
+        title: `${categories[ci]} · ${year}`,
+        subtitle: `Image ${String(i+1).padStart(2,'0')} of ${IMAGES_PER_BATCH}`,
+        category: categories[ci],
+        desc: descriptions[di],
+        palette: palettes[pi],
+        index: i,
+      });
+    }
+    return items;
+  }
+
+  // ── STATE ────────────────────────────────────────────────────────────────────
+  let currentYear = START_YEAR;
+  let currentItems = [];
+  let lightboxIndex = 0;
+
+  // ── DOM REFS ─────────────────────────────────────────────────────────────────
+  const strip      = document.getElementById('batch-strip');
+  const decadeNav  = document.getElementById('decade-nav');
+  const grid       = document.getElementById('gallery-grid');
+  const emptyState = document.getElementById('empty-state');
+  const hero       = document.getElementById('batch-hero');
+  const heroLabel  = document.getElementById('hero-label');
+  const heroDesc   = document.getElementById('hero-desc');
+  const heroCount  = document.getElementById('hero-count');
+  const lightbox   = document.getElementById('lightbox');
+  const lbImgWrap  = document.getElementById('lb-img-wrap');
+  const lbTitle    = document.getElementById('lb-title');
+  const lbMeta     = document.getElementById('lb-meta');
+  const lbDesc     = document.getElementById('lb-desc');
+  const lbClose    = document.getElementById('lb-close');
+  const lbPrev     = document.getElementById('lb-prev');
+  const lbNext     = document.getElementById('lb-next');
+
+  // ── BUILD BATCH STRIP ────────────────────────────────────────────────────────
+  for (let y = START_YEAR; y <= END_YEAR; y++) {
+    const btn = document.createElement('button');
+    btn.className = 'batch-btn' + (y === START_YEAR ? ' active' : '');
+    btn.textContent = y;
+    btn.dataset.year = y;
+    btn.id = `batch-btn-${y}`;
+    btn.addEventListener('click', () => selectBatch(y));
+    strip.appendChild(btn);
+  }
+
+  // ── BUILD DECADE JUMPER ──────────────────────────────────────────────────────
+  const decades = [];
+  for (let d = Math.floor(START_YEAR / 10) * 10; d <= END_YEAR; d += 10) {
+    decades.push(d);
+  }
+  decades.forEach(d => {
+    const btn = document.createElement('button');
+    btn.className = 'decade-btn';
+    btn.textContent = d + 's';
+    btn.addEventListener('click', () => {
+      const target = Math.max(START_YEAR, Math.min(END_YEAR, d));
+      selectBatch(target);
+      document.getElementById(`batch-btn-${target}`)?.scrollIntoView({
+        behavior: 'smooth', block: 'nearest', inline: 'center'
+      });
+      document.querySelectorAll('.decade-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+    decadeNav.appendChild(btn);
+  });
+
+  // ── PLACEHOLDER SVG ELEMENT ──────────────────────────────────────────────────
+  function makePlaceholder(item, large = false) {
+    const div = document.createElement('div');
+    div.className = 'card-placeholder';
+    div.style.background = `linear-gradient(135deg, ${item.palette[0]}, ${item.palette[1]})`;
+    div.innerHTML = `
+      <div class="year-badge">${item.year}</div>
+      <div class="img-label">${item.category}</div>
+    `;
+    return div;
+  }
+
+  // ── RENDER GALLERY ────────────────────────────────────────────────────────────
+  function renderGallery(year) {
+    currentItems = generateBatchData(year);
+    grid.innerHTML = '';
+    emptyState.style.display = 'none';
+    grid.style.display = 'grid';
+
+    if (!currentItems.length) {
+      grid.style.display = 'none';
+      emptyState.style.display = 'block';
+      document.getElementById('empty-year').textContent = year;
+      return;
+    }
+
+    currentItems.forEach((item, idx) => {
+      const card = document.createElement('div');
+      card.className = 'gallery-card';
+      card.style.animationDelay = `${idx * 40}ms`;
+
+      const thumb = makePlaceholder(item);
+      card.appendChild(thumb);
+
+      const body = document.createElement('div');
+      body.className = 'card-body-custom';
+      body.innerHTML = `
+        <div class="card-title-custom">${item.title}</div>
+        <div class="card-meta">${item.subtitle}</div>
+        <span class="card-tag">${item.category}</span>
+      `;
+      card.appendChild(body);
+
+      card.addEventListener('click', () => openLightbox(idx));
+      grid.appendChild(card);
+    });
+  }
+
+  // ── HERO UPDATE ───────────────────────────────────────────────────────────────
+  function updateHero(year) {
+    hero.setAttribute('data-year', year);
+    heroLabel.textContent = `BATCH ${year}`;
+    heroDesc.textContent  = `Academic Year ${year} · Gallery Archive`;
+    heroCount.textContent = `${IMAGES_PER_BATCH} Images`;
+  }
+
+  // ── SELECT BATCH ──────────────────────────────────────────────────────────────
+  function selectBatch(year) {
+    currentYear = year;
+    document.querySelectorAll('.batch-btn').forEach(b =>
+      b.classList.toggle('active', +b.dataset.year === year)
+    );
+    updateHero(year);
+    renderGallery(year);
+    document.getElementById(`batch-btn-${year}`)?.scrollIntoView({
+      behavior: 'smooth', block: 'nearest', inline: 'center'
+    });
+    // Update decade highlight
+    const dec = Math.floor(year / 10) * 10;
+    document.querySelectorAll('.decade-btn').forEach(b => {
+      b.classList.toggle('active', b.textContent === dec + 's');
+    });
+  }
+
+  // ── LIGHTBOX ──────────────────────────────────────────────────────────────────
+  function openLightbox(idx) {
+    lightboxIndex = idx;
+    renderLightbox();
+    lightbox.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    lightbox.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function renderLightbox() {
+    const item = currentItems[lightboxIndex];
+    lbImgWrap.innerHTML = '';
+    lbImgWrap.appendChild(makePlaceholder(item, true));
+    lbTitle.textContent = item.title;
+    lbMeta.textContent  = `${item.category} · Batch ${item.year} · ${item.subtitle}`;
+    lbDesc.textContent  = item.desc;
+    lbPrev.disabled = lightboxIndex === 0;
+    lbNext.disabled = lightboxIndex === currentItems.length - 1;
+    lbPrev.style.opacity = lbPrev.disabled ? '0.3' : '1';
+    lbNext.style.opacity = lbNext.disabled ? '0.3' : '1';
+  }
+
+  lbClose.addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
+  lbPrev.addEventListener('click', () => { if (lightboxIndex > 0) { lightboxIndex--; renderLightbox(); }});
+  lbNext.addEventListener('click', () => { if (lightboxIndex < currentItems.length-1) { lightboxIndex++; renderLightbox(); }});
+
+  document.addEventListener('keydown', e => {
+    if (!lightbox.classList.contains('open')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft' && lightboxIndex > 0) { lightboxIndex--; renderLightbox(); }
+    if (e.key === 'ArrowRight' && lightboxIndex < currentItems.length-1) { lightboxIndex++; renderLightbox(); }
+  });
+
+  // ── INIT ──────────────────────────────────────────────────────────────────────
+  selectBatch(START_YEAR);
+</script>
+</body>
+</html>
