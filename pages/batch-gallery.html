@@ -206,33 +206,83 @@
       background: #eee;
     }
 
-    /* SVG placeholder as data URI for card thumb */
-    .card-placeholder {
+    /* Demo image thumb */
+    .card-thumb-wrap {
       width: 100%;
       aspect-ratio: 4/3;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 8px;
-      font-size: 0.7rem;
-      font-weight: 500;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: #fff;
-      position: relative;
       overflow: hidden;
+      position: relative;
+      background: #ddd;
     }
-    .card-placeholder .year-badge {
+    .card-thumb-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.35s ease;
+    }
+    .gallery-card:hover .card-thumb-wrap img {
+      transform: scale(1.07);
+    }
+    .card-thumb-wrap .img-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 55%);
+      pointer-events: none;
+    }
+    .card-thumb-wrap .overlay-year {
+      position: absolute;
+      bottom: 8px;
+      left: 10px;
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 2.8rem;
+      font-size: 1.5rem;
+      color: #fff;
       line-height: 1;
-      opacity: 0.9;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+      pointer-events: none;
     }
-    .card-placeholder .img-label {
-      font-size: 0.65rem;
-      opacity: 0.7;
-      letter-spacing: 0.1em;
+    .card-thumb-wrap .overlay-cat {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.6rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 2px;
+      pointer-events: none;
+    }
+    /* Skeleton loader */
+    .card-thumb-wrap .img-skeleton {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, #e8e0d4 25%, #f0e8dc 50%, #e8e0d4 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+    }
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* Lightbox image */
+    #lb-img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    #lb-img-wrap {
+      position: relative;
+    }
+    #lb-img-wrap .img-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 50%);
+      pointer-events: none;
     }
 
     .card-body-custom {
@@ -429,20 +479,37 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+
+  // ════════════════════════════════════════════════════════════════════════════
+  //  IMAGE SOURCE CONFIGURATION
+  //  ─────────────────────────────────────────────────────────────────────────
+  //  MODE A — "demo"  : uses Picsum Photos (online demo images, no setup needed)
+  //  MODE B — "local" : reads images from your local batch folders
+  //
+  //  To switch to your local folder, change IMAGE_MODE to "local"
+  //  and set LOCAL_BASE_PATH to the path of your images root folder.
+  //
+  //  Expected local folder structure:
+  //    images/
+  //      1971/   → img_001.jpg, img_002.jpg, img_003.jpg …
+  //      1972/   → img_001.jpg, img_002.jpg …
+  //      1973/   → …
+  //      (folder name = batch year, files named img_001.jpg … img_012.jpg)
+  //
+  //  Supported extensions (checked in order): jpg, jpeg, png, webp
+  // ════════════════════════════════════════════════════════════════════════════
+
+  const IMAGE_MODE      = "local";           // ← change to "local" for your folders
+  const LOCAL_BASE_PATH = "../images";      // ← root folder containing year sub-folders (pages/ is one level deep)
+  const LOCAL_IMG_EXT   = "jpg";            // ← file extension used in your folders (jpg/png/webp)
+  const LOCAL_IMG_PREFIX= "img_";           // ← filename prefix  e.g. img_001.jpg
+  const LOCAL_IMG_PAD   = 3;               // ← zero-pad digits  e.g. 3 → img_001.jpg
+
   // ── CONFIG ──────────────────────────────────────────────────────────────────
-  const START_YEAR = 1971;
-  const END_YEAR   = 2025;
+  const START_YEAR       = 1971;
+  const END_YEAR         = 2025;
   const IMAGES_PER_BATCH = 12;
 
-  // Palette pool for placeholder cards
-  const palettes = [
-    ['#c8402a','#8b2d1e'],['#2a6496','#1a3d5c'],['#4a7c59','#2d5038'],
-    ['#7b5ea7','#4d3a6e'],['#c8913a','#8a6028'],['#3a7a9c','#224d63'],
-    ['#a04060','#6b2840'],['#5a7a3a','#384f24'],['#9c6a3a','#6b4524'],
-    ['#3a609c','#243e6b'],
-  ];
-
-  // Image categories for variety
   const categories = [
     'Portrait','Group Photo','Ceremony','Graduation','Sports','Event',
     'Campus Life','Lab Work','Cultural','Award','Seminar','Field Trip',
@@ -456,32 +523,54 @@
     'A timeless photograph preserving history.',
   ];
 
+  // ── IMAGE URL RESOLVER ───────────────────────────────────────────────────────
+  //  Returns { thumbUrl, largeUrl } for a given batch year + image slot index.
+  //  Demo mode  → Picsum Photos CDN
+  //  Local mode → relative path to batch sub-folder
+  function resolveImageUrls(year, slotIndex) {
+    if (IMAGE_MODE === "local") {
+      // e.g.  images/1971/img_001.jpg
+      const padded = String(slotIndex + 1).padStart(LOCAL_IMG_PAD, '0');
+      const file   = `${LOCAL_IMG_PREFIX}${padded}.${LOCAL_IMG_EXT}`;
+      const path   = `${LOCAL_BASE_PATH}/${year}/${file}`;
+      return { thumbUrl: path, largeUrl: path };   // same file, CSS handles sizing
+    }
+
+    // Demo mode — deterministic Picsum ID so every slot is a different photo
+    const pid = ((year - START_YEAR) * IMAGES_PER_BATCH + slotIndex) % 1000 + 1;
+    return {
+      thumbUrl: `https://picsum.photos/id/${pid}/400/300`,
+      largeUrl: `https://picsum.photos/id/${pid}/800/600`,
+    };
+  }
+
   // ── DATA GENERATION ─────────────────────────────────────────────────────────
   function generateBatchData(year) {
     const items = [];
-    const seed = (year - START_YEAR) * 13;
+    const seed  = (year - START_YEAR) * 13;
     for (let i = 0; i < IMAGES_PER_BATCH; i++) {
-      const pi  = (seed + i) % palettes.length;
       const ci  = (seed + i * 3) % categories.length;
       const di  = (seed + i * 7) % descriptions.length;
+      const { thumbUrl, largeUrl } = resolveImageUrls(year, i);
       items.push({
-        id: `${year}-${i+1}`,
+        id      : `${year}-${i + 1}`,
         year,
-        title: `${categories[ci]} · ${year}`,
-        subtitle: `Image ${String(i+1).padStart(2,'0')} of ${IMAGES_PER_BATCH}`,
+        title   : `${categories[ci]} · ${year}`,
+        subtitle: `Image ${String(i + 1).padStart(2, '0')} of ${IMAGES_PER_BATCH}`,
         category: categories[ci],
-        desc: descriptions[di],
-        palette: palettes[pi],
-        index: i,
+        desc    : descriptions[di],
+        thumbUrl,
+        largeUrl,
+        index   : i,
       });
     }
     return items;
   }
 
   // ── STATE ────────────────────────────────────────────────────────────────────
-  let currentYear = START_YEAR;
-  let currentItems = [];
-  let lightboxIndex = 0;
+  let currentYear    = START_YEAR;
+  let currentItems   = [];
+  let lightboxIndex  = 0;
 
   // ── DOM REFS ─────────────────────────────────────────────────────────────────
   const strip      = document.getElementById('batch-strip');
@@ -504,45 +593,70 @@
   // ── BUILD BATCH STRIP ────────────────────────────────────────────────────────
   for (let y = START_YEAR; y <= END_YEAR; y++) {
     const btn = document.createElement('button');
-    btn.className = 'batch-btn' + (y === START_YEAR ? ' active' : '');
+    btn.className   = 'batch-btn' + (y === START_YEAR ? ' active' : '');
     btn.textContent = y;
     btn.dataset.year = y;
-    btn.id = `batch-btn-${y}`;
+    btn.id          = `batch-btn-${y}`;
     btn.addEventListener('click', () => selectBatch(y));
     strip.appendChild(btn);
   }
 
   // ── BUILD DECADE JUMPER ──────────────────────────────────────────────────────
   const decades = [];
-  for (let d = Math.floor(START_YEAR / 10) * 10; d <= END_YEAR; d += 10) {
-    decades.push(d);
-  }
+  for (let d = Math.floor(START_YEAR / 10) * 10; d <= END_YEAR; d += 10) decades.push(d);
   decades.forEach(d => {
     const btn = document.createElement('button');
-    btn.className = 'decade-btn';
+    btn.className   = 'decade-btn';
     btn.textContent = d + 's';
     btn.addEventListener('click', () => {
       const target = Math.max(START_YEAR, Math.min(END_YEAR, d));
       selectBatch(target);
-      document.getElementById(`batch-btn-${target}`)?.scrollIntoView({
-        behavior: 'smooth', block: 'nearest', inline: 'center'
-      });
+      document.getElementById(`batch-btn-${target}`)?.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' });
       document.querySelectorAll('.decade-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
     });
     decadeNav.appendChild(btn);
   });
 
-  // ── PLACEHOLDER SVG ELEMENT ──────────────────────────────────────────────────
-  function makePlaceholder(item, large = false) {
-    const div = document.createElement('div');
-    div.className = 'card-placeholder';
-    div.style.background = `linear-gradient(135deg, ${item.palette[0]}, ${item.palette[1]})`;
-    div.innerHTML = `
-      <div class="year-badge">${item.year}</div>
-      <div class="img-label">${item.category}</div>
-    `;
-    return div;
+  // ── IMAGE CARD BUILDER ────────────────────────────────────────────────────────
+  function makeImageThumb(item, large = false) {
+    const wrap = document.createElement('div');
+    wrap.className = 'card-thumb-wrap';
+
+    const skeleton = document.createElement('div');
+    skeleton.className = 'img-skeleton';
+    wrap.appendChild(skeleton);
+
+    const img    = document.createElement('img');
+    img.alt      = item.title;
+    img.loading  = 'lazy';
+    img.src      = large ? item.largeUrl : item.thumbUrl;
+    img.onload   = () => skeleton.remove();
+    img.onerror  = () => {
+      // Graceful fallback: demo seed image so gallery never breaks
+      const fallback = `https://picsum.photos/seed/${item.year}-${item.index}/${large ? '800/600' : '400/300'}`;
+      if (img.src !== fallback) { img.src = fallback; return; }
+      skeleton.style.background = '#c8d0d8';
+      skeleton.style.animation  = 'none';
+      skeleton.innerHTML = `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:2rem;color:#aaa;">${item.year}</div>`;
+    };
+    wrap.appendChild(img);
+
+    const overlay = document.createElement('div');
+    overlay.className = 'img-overlay';
+    wrap.appendChild(overlay);
+
+    const yearBadge = document.createElement('div');
+    yearBadge.className   = 'overlay-year';
+    yearBadge.textContent = item.year;
+    wrap.appendChild(yearBadge);
+
+    const catBadge = document.createElement('div');
+    catBadge.className   = 'overlay-cat';
+    catBadge.textContent = item.category;
+    wrap.appendChild(catBadge);
+
+    return wrap;
   }
 
   // ── RENDER GALLERY ────────────────────────────────────────────────────────────
@@ -552,20 +666,12 @@
     emptyState.style.display = 'none';
     grid.style.display = 'grid';
 
-    if (!currentItems.length) {
-      grid.style.display = 'none';
-      emptyState.style.display = 'block';
-      document.getElementById('empty-year').textContent = year;
-      return;
-    }
-
     currentItems.forEach((item, idx) => {
       const card = document.createElement('div');
       card.className = 'gallery-card';
       card.style.animationDelay = `${idx * 40}ms`;
 
-      const thumb = makePlaceholder(item);
-      card.appendChild(thumb);
+      card.appendChild(makeImageThumb(item));
 
       const body = document.createElement('div');
       body.className = 'card-body-custom';
@@ -597,14 +703,11 @@
     );
     updateHero(year);
     renderGallery(year);
-    document.getElementById(`batch-btn-${year}`)?.scrollIntoView({
-      behavior: 'smooth', block: 'nearest', inline: 'center'
-    });
-    // Update decade highlight
+    document.getElementById(`batch-btn-${year}`)?.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' });
     const dec = Math.floor(year / 10) * 10;
-    document.querySelectorAll('.decade-btn').forEach(b => {
-      b.classList.toggle('active', b.textContent === dec + 's');
-    });
+    document.querySelectorAll('.decade-btn').forEach(b =>
+      b.classList.toggle('active', b.textContent === dec + 's')
+    );
   }
 
   // ── LIGHTBOX ──────────────────────────────────────────────────────────────────
@@ -614,35 +717,32 @@
     lightbox.classList.add('open');
     document.body.style.overflow = 'hidden';
   }
-
   function closeLightbox() {
     lightbox.classList.remove('open');
     document.body.style.overflow = '';
   }
-
   function renderLightbox() {
     const item = currentItems[lightboxIndex];
     lbImgWrap.innerHTML = '';
-    lbImgWrap.appendChild(makePlaceholder(item, true));
+    lbImgWrap.appendChild(makeImageThumb(item, true));
     lbTitle.textContent = item.title;
     lbMeta.textContent  = `${item.category} · Batch ${item.year} · ${item.subtitle}`;
     lbDesc.textContent  = item.desc;
-    lbPrev.disabled = lightboxIndex === 0;
-    lbNext.disabled = lightboxIndex === currentItems.length - 1;
+    lbPrev.disabled     = lightboxIndex === 0;
+    lbNext.disabled     = lightboxIndex === currentItems.length - 1;
     lbPrev.style.opacity = lbPrev.disabled ? '0.3' : '1';
     lbNext.style.opacity = lbNext.disabled ? '0.3' : '1';
   }
 
   lbClose.addEventListener('click', closeLightbox);
   lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
-  lbPrev.addEventListener('click', () => { if (lightboxIndex > 0) { lightboxIndex--; renderLightbox(); }});
-  lbNext.addEventListener('click', () => { if (lightboxIndex < currentItems.length-1) { lightboxIndex++; renderLightbox(); }});
-
+  lbPrev.addEventListener('click', () => { if (lightboxIndex > 0)                          { lightboxIndex--; renderLightbox(); }});
+  lbNext.addEventListener('click', () => { if (lightboxIndex < currentItems.length - 1)    { lightboxIndex++; renderLightbox(); }});
   document.addEventListener('keydown', e => {
     if (!lightbox.classList.contains('open')) return;
-    if (e.key === 'Escape') closeLightbox();
-    if (e.key === 'ArrowLeft' && lightboxIndex > 0) { lightboxIndex--; renderLightbox(); }
-    if (e.key === 'ArrowRight' && lightboxIndex < currentItems.length-1) { lightboxIndex++; renderLightbox(); }
+    if (e.key === 'Escape')      closeLightbox();
+    if (e.key === 'ArrowLeft'  && lightboxIndex > 0)                       { lightboxIndex--; renderLightbox(); }
+    if (e.key === 'ArrowRight' && lightboxIndex < currentItems.length - 1) { lightboxIndex++; renderLightbox(); }
   });
 
   // ── INIT ──────────────────────────────────────────────────────────────────────
