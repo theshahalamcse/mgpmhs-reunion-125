@@ -335,7 +335,7 @@
     #lb-inner {
       background: var(--card-bg);
       border-radius: 6px;
-      max-width: 560px;
+      max-width: 1000px;
       width: 100%;
       overflow: hidden;
       position: relative;
@@ -509,7 +509,7 @@
 
   const IMAGE_MODE      = "local";           // ← change to "local" for your folders
   const LOCAL_BASE_PATH = "../images";      // ← root folder containing year sub-folders (pages/ is one level deep)
-  const LOCAL_IMG_EXT   = "jpg";            // ← file extension used in your folders (jpg/png/webp)
+  const LOCAL_IMG_EXTS  = ["jpg","jpeg","png","webp"]; // ← file extensions tried in order
   const LOCAL_IMG_PREFIX= "img_";           // ← filename prefix  e.g. img_001.jpg
   const LOCAL_IMG_PAD   = 3;               // ← zero-pad digits  e.g. 3 → img_001.jpg
 
@@ -537,11 +537,14 @@
   //  Local mode → relative path to batch sub-folder
   function resolveImageUrls(year, slotIndex) {
     if (IMAGE_MODE === "local") {
-      // e.g.  images/1971/img_001.jpg
-      const padded = String(slotIndex + 1).padStart(LOCAL_IMG_PAD, '0');
-      const file   = `${LOCAL_IMG_PREFIX}${padded}.${LOCAL_IMG_EXT}`;
-      const path   = `${LOCAL_BASE_PATH}/${year}/${file}`;
-      return { thumbUrl: path, largeUrl: path };   // same file, CSS handles sizing
+      // e.g.  images/1971/img_001.jpg, images/1971/img_001.jpeg, images/1971/img_001.png …
+      const padded    = String(slotIndex + 1).padStart(LOCAL_IMG_PAD, '0');
+      const candidates = LOCAL_IMG_EXTS.map(ext => `${LOCAL_BASE_PATH}/${year}/${LOCAL_IMG_PREFIX}${padded}.${ext}`);
+      return {
+        thumbUrl   : candidates[0],
+        largeUrl   : candidates[0],
+        localUrls  : candidates,
+      };
     }
 
     // Demo mode — deterministic Picsum ID so every slot is a different photo
@@ -559,7 +562,7 @@
     for (let i = 0; i < IMAGES_PER_BATCH; i++) {
       const ci  = (seed + i * 3) % categories.length;
       const di  = (seed + i * 7) % descriptions.length;
-      const { thumbUrl, largeUrl } = resolveImageUrls(year, i);
+      const { thumbUrl, largeUrl, localUrls } = resolveImageUrls(year, i);
       items.push({
         id      : `${year}-${i + 1}`,
         year,
@@ -569,6 +572,7 @@
         desc    : descriptions[di],
         thumbUrl,
         largeUrl,
+        localUrls,
         index   : i,
       });
     }
@@ -638,9 +642,16 @@
     const img    = document.createElement('img');
     img.alt      = item.title;
     img.loading  = 'lazy';
+    const candidates = item.localUrls || [];
+    let candidateIndex = 0;
     img.src      = large ? item.largeUrl : item.thumbUrl;
     img.onload   = () => skeleton.remove();
     img.onerror  = () => {
+      if (IMAGE_MODE === "local" && candidateIndex < candidates.length - 1) {
+        candidateIndex += 1;
+        img.src = candidates[candidateIndex];
+        return;
+      }
       // Graceful fallback: demo seed image so gallery never breaks
       const fallback = `https://picsum.photos/seed/${item.year}-${item.index}/${large ? '800/600' : '400/300'}`;
       if (img.src !== fallback) { img.src = fallback; return; }
